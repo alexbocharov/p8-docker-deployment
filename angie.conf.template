@@ -17,8 +17,8 @@ http {
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml;
 
-    # Docker internal DNS
-    resolver 127.0.0.11 valid=30s;
+    # Use a simple placeholder like __NS_IP__
+    resolver __NS_IP__ valid=10s;
 
     server {
         listen 80;
@@ -39,14 +39,19 @@ http {
 
         # DYNAMIC ROUTING
         # Matches /webcore/..., /demo/..., etc.
-        location ~ ^/(?<inst>[^/]+)/ {
-            # Routes to container: parus-web-webcore, parus-web-demo, etc.
-            proxy_pass http://parus-web-$inst:8080;
+        location ~ ^/(?<inst>[^/]+) {  # Removed the mandatory trailing slash from regex
+            set $target parus-web-$inst;
+            
+            # If the URL doesn't end in a slash, redirect to the slashed version
+            # This prevents the "No such file or directory" error
+            rewrite ^/([^/]+)$ /$1/ permanent;
+
+            proxy_pass http://$target:8080;
         }
 
         # Optional: Redirect root to a default environment
         location = / {
-            return 301 /webcore/;
+            return 301 /inst1/;
         }
     }
 }

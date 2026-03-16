@@ -21,7 +21,17 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./angie.conf:/etc/angie/angie.conf:ro
+      # Mount the template file
+      - ./angie.conf.template:/etc/angie/angie.conf.template:ro
+    # Using a simple string replacement to avoid $$ escaping issues
+    command: >
+      /bin/sh -c "
+      NS_IP=$(awk '/^nameserver/ {print $$2; exit}' /etc/resolv.conf);
+      if [ -z \"$$NS_IP\" ]; then NS_IP=\"127.0.0.11\"; fi;
+      echo \"Using Nameserver: $$NS_IP\";
+      sed \"s|__NS_IP__|$$NS_IP|g\" /etc/angie/angie.conf.template > /etc/angie/angie.conf &&
+      exec angie -g 'daemon off;'
+      "
     networks:
       - p8-network
 
