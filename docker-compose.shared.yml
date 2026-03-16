@@ -1,0 +1,49 @@
+services:
+  # Single Redis instance for all deployments
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - p8-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Single Angine instance acting as a reverse proxy for all deployments
+  angie:
+    image: docker.angie.software/angie:latest
+    container_name: angie
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Mount the template file
+      - ./angie.conf.template:/etc/angie/angie.conf.template:ro
+    # Using a simple string replacement to avoid $$ escaping issues
+    command: >
+      /bin/sh -c "
+      NS_IP=$(awk '/^nameserver/ {print $$2; exit}' /etc/resolv.conf);
+      if [ -z \"$$NS_IP\" ]; then NS_IP=\"127.0.0.11\"; fi;
+      echo \"Using Nameserver: $$NS_IP\";
+      sed \"s|__NS_IP__|$$NS_IP|g\" /etc/angie/angie.conf.template > /etc/angie/angie.conf &&
+      exec angie -g 'daemon off;'
+      "
+    networks:
+      - p8-network
+    healthcheck:
+      # 'angie -t' checks if the process can parse its own config
+      # 'pgrep angie' ensures the process is actually running
+      test: ["CMD-SHELL", "angie -t && pgrep angie"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s # Gives the sed command time to finish
+
+networks:
+  p8-network:
+    name: p8-network
+    driver: bridge

@@ -4,71 +4,88 @@ This repository contains an experimental, highly scalable Docker Compose configu
 
 ## 🌟 Key Features
 
-*   **Dynamic Routing:** Use a single port (80) to access multiple instances via URL paths (e.g., `/inst1`, `/inst2`).
-*   **Shared Resources:** All environments share a single **Redis** cache and **Angie** (Nginx-compatible) Reverse Proxy to save RAM.
-*   **Zero-Config Scaling:** Add a new deployment just by creating a `.env` file—no need to edit `angie.conf` or `docker-compose.yml`.
-*   **Optimized for Parus 8:** Includes specific Gzip, timeout, and buffer settings required for heavy Oracle-based reports.
-
----
+*   **Dynamic Routing:** Access multiple instances via URL paths (e.g., `/p8dev`, `/prsnk`) on a single port (80).
+*   **Shared Resources:** Single **Redis** and **Angie** (Nginx-compatible) instance for all environments to minimize RAM usage.
+*   **Universal DNS Detection:** Automatically detects nameservers for both Docker (`127.0.0.11`) and Podman (`10.88.0.1`).
+*   **Instance Isolation:** Start, stop, or update specific deployments without affecting others.
+*   **Optimized for Parus 8:** Pre-configured with Gzip, long timeouts, and buffer settings for Oracle-based reporting.
 
 ## 🏗️ Architecture Overview
 
-The setup uses **Angie** as a smart router. It detects the environment name from the URL path and forwards the request to the correct container:
+The setup splits infrastructure from application logic to prevent container name conflicts:
 
-
-| Access URL | Internal Target | Redis (Shared) |
+| Component | Role | Logic |
 | :--- | :--- | :--- |
-| `http://ip/inst1` | `parus-web-inst1:8080` | `redis:6379` |
-| `http://ip/inst2` | `parus-web-inst2:8080` | `redis:6379` |
+| **Shared Infra** | Redis & Angie | Started once. Acts as the gateway. |
+| **Instance** | Web & MQ Services | Unique per deployment name. |
 
----
+**Routing Logic:**
+
+`http://server-ip/inst1` ➡️ `parus-web-inst1:8080`
+
+`http://server-ip/inst2` ➡️ `parus-web-inst2:8080`
+
 
 ## 📂 Project Structure
 
 ```text
 p8-docker-deployment/
-├── .env/                  # Folder for instance-specific configs
-│   ├── inst1.env          # Config for 'inst1'
-│   └── inst2.env          # Config for 'inst2'
-├── angie.conf.template    # Dynamic Reverse Proxy configuration template
-├── docker-compose.yml     # Main orchestration file
-└── README.md              # You are here!
+├── .env/                       # Folder for instance-specific configs
+│   ├── inst1.env               # Config for 'inst1'
+│   └── inst2.env               # Config for 'inst2'
+├── angie.conf.template         # Dynamic routing template
+├── docker-compose.shared.yml   # Redis & Angie
+├── docker-compose.instance.yml # Web & MQ Services template
+└── README.md                   # You are here!
 ```
 
-## 🚀 How to Deploy a New Instance
+## 🚀 Deployment Guide
 
-### 1️⃣ Create an Environment File
+### 1️⃣ Start the Shared Infrastructure
+Run this once to bring up the proxy and cache:
 
-Create a file in (e.g., ):`./env/{DEPLOYMENT_NAME}.env./env/inst1.env`
+**Unix / Podman:**
+
+```bash
+sudo podman compose -f docker-compose.shared.yml up -d
+```
+
+**Windows / PowerShell:**
+
+```pwsh
+docker compose -f docker-compose.shared.yml up -d
+```
+
+### 2️⃣ Create an Instance Config
+
+Create `./env/inst1.env` with your Oracle credentials:
 
 ```ini
-# Database Connection
-AuthSettings__Connections__0__connectionString=direct=true;host=172.20.10.140;...
-Connection__ConnectionString=direct=true;host=172.20.10.140;...
+DEPLOYMENT_NAME=inst1
 
-# Instance Specific Apps (Add as many as needed)
-AuthSettings__Applications__0__code=Admin
-AuthSettings__Applications__0__name=Administrator
+# DB Credentials for Report Service
+PARUS_RPT_CONNECTION_KIND=oracle
+PARUS_RPT_CONNECTION_STRING=direct=true;host=172.20.10.140;...user=parus_rpt;password=...
 ```
 
-### 2️⃣ Launch the Environment
+### 3️⃣ Launch a Specific Instance
 
-Run the following command, replacing with your desired name:`inst1`
+Replace `inst1` with your target name:
 
-**Unix:**
+**Unix / Podman:**
+
 ```bash
-DEPLOYMENT_NAME=inst1 docker-compose --env-file .env/inst1.env --profile report up -d
+sudo DEPLOYMENT_NAME=inst1 podman compose -f docker-compose.instance.yml --env-file .env/inst1.env --profile report up -d
 ```
 
-**Windows:**
+**Windows / PowerShell:**
+
 ```pwsh
-# Set the deployment name for the container names
 $env:DEPLOYMENT_NAME="inst1"
-# Run with the specific env-file and profiles
-docker-compose --env-file .env/inst1.env --profile report up -d
+docker compose -f docker-compose.instance.yml --env-file .env/inst1.env --profile report up -d
 ```
 
-### 3️⃣ Access via Browser
+### 4️⃣ Access the Instance
 
 Wait for the containers to start and visit:
 `http://your-server-ip/inst1`
@@ -80,7 +97,7 @@ Wait for the containers to start and visit:
 To support subfolder routing, the following variables are automatically injected:
 * `Hosting__UsePathBase=true`
 * `Hosting__PathBase=/${DEPLOYMENT_NAME}`
-* `Hosing__UseForwardedHeaders=true`
+* `Hosting__UseForwardedHeaders=true`
 
 ### Angie Reverse Proxy
 
@@ -100,26 +117,44 @@ location ~ ^/(?<inst>[^/]+)/ {
 
 ## 🛠️ Maintenance
 
-To view logs for a specific instance:
+Stop a specific instance (e.g., `inst1`):
 
+**Unix / Podman:**
 ```bash
+sudo DEPLOYMENT_NAME=inst1 podman compose -f docker-compose.instance.yml --env-file .env/inst1.env down
+```
+
+**Windows / PowerShell:**
+```pwsh
+$env:DEPLOYMENT_NAME="inst1"
+docker compose -f docker-compose.instance.yml --env-file .env/inst1.env down
+```
+
+View logs for an instance:
+
+**Unix / Podman:**
+```bash
+podman logs -f parus-web-inst1
+```
+
+**Windows / PowerShell:**
+```pwsh
 docker logs -f parus-web-inst1
 ```
 
-To stop a specific instance:
+Check Health Status:
 
-**Unix:**
+**Unix / Podman:**
 ```bash
-DEPLOYMENT_NAME=inst1 docker compose --env-file .env/inst1.env down
+podman ps  # Status should show (healthy)
 ```
 
-**Windows:**
+**Windows / PowerShell:**
 ```pwsh
-$env:DEPLOYMENT_NAME="inst1"
-docker compose --env-file .env/inst1.env down
+docker ps  # Status should show (healthy)
 ```
 
-📫 This is an experimental scenario. Use with caution in production environments.
+📫 Note: This is an experimental scenario. Use with caution in production.
 
 ## 🤝 **Community Standards**
 We value respectful and constructive interactions. Please refer to our [Code of Conduct](CODE_OF_CONDUCT.md) for detailed guidelines on community behavior.

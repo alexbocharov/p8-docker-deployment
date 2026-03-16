@@ -1,0 +1,42 @@
+services:
+  # Parus 8 Web Client (Unique per deployment)
+  web:
+    image: parus/web:latest
+    container_name: parus-web-${DEPLOYMENT_NAME}
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - Hosting__UseForwardedHeaders=true
+      - GlobalSettings__WfRedisConnectionString=redis:6379
+      - GlobalSettings__SessionRedisConnectionString=redis:6379
+      - Hosting__UsePathBase=true
+      - Hosting__PathBase=/${DEPLOYMENT_NAME}
+    networks:
+      - p8-network
+    healthcheck:
+      # This check opens a raw TCP connection to port 8080.
+      # It works in both Docker and Podman without needing curl/wget.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s # Gives Parus 8 time to boot before checking
+
+  # Parus 8 MqReportService (Unique per deployment)
+  mqreportservice:
+    image: parus/service/mqreportservice:latest
+    profiles: ["report", "all"]
+    container_name: parus-mqreportservice-${DEPLOYMENT_NAME}
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Connection__Kind=${PARUS_RPT_CONNECTION_KIND}
+      - Connection__ConnectionString=${PARUS_RPT_CONNECTION_STRING}
+      - Connection__DbMonitorEnabled=${PARUS_RPT_CONNECTION_DBMONITORENABLED}
+    networks:
+      - p8-network
+
+networks:
+  p8-network:
+    external: true
