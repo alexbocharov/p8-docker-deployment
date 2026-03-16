@@ -1,0 +1,67 @@
+services:
+  # Single Redis instance for all deployments
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - p8-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Single Angine instance acting as a reverse proxy for all deployments
+  angie:
+    image: docker.angie.software/angie:latest
+    container_name: angie
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./angie.conf:/etc/angie/angie.conf:ro
+    networks:
+      - p8-network
+
+  # Parus 8 Web Client (Unique per deployment)
+  web:
+    image: parus/web:latest
+    container_name: parus-web-${DEPLOYMENT_NAME}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    # Each instance needs a unique host port if accessed directly, but ideally should be accessed through Angine
+    ports:
+      - "${WEB_PORT}:8080"
+    env_file:
+      - .env/${DEPLOYMENT_NAME}.env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - Hosing__UseForwardedHeaders=true
+      - GlobalSettings__WfRedisConnectionString=redis:6379
+      - GlobalSettings__SessionRedisConnectionString=redis:6379
+      - Hosting__UsePathBase=true
+      - Hosting__PathBase=/${DEPLOYMENT_NAME}
+    networks:
+      - p8-network
+
+  # Parus 8 MqReportService (Unique per deployment)
+  mqreportservice:
+    image: parus/service/mqreportservice:latest
+    container_name: parus-mqreportservice-${DEPLOYMENT_NAME}
+    restart: unless-stopped
+    env_file:
+      - .env/${DEPLOYMENT_NAME}.env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - p8-network
+
+networks:
+  p8-network:
+    name: p8-network
+    driver: bridge
