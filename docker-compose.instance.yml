@@ -12,6 +12,8 @@ services:
       - GlobalSettings__SessionRedisConnectionString=redis:6379
       - Hosting__UsePathBase=true
       - Hosting__PathBase=/${DEPLOYMENT_NAME}
+    env_file:
+      - .env/${DEPLOYMENT_NAME}.env
     networks:
       - p8-network
     healthcheck:
@@ -34,6 +36,8 @@ services:
       - Connection__Kind=${PARUS_RPT_CONNECTION_KIND}
       - Connection__ConnectionString=${PARUS_RPT_CONNECTION_STRING}
       - Connection__DbMonitorEnabled=${PARUS_RPT_CONNECTION_DBMONITORENABLED}
+    env_file:
+      - .env/${DEPLOYMENT_NAME}.env
     networks:
       - p8-network
 
