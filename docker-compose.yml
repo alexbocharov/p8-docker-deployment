@@ -62,12 +62,16 @@ services:
   # Parus 8 MqReportService (Unique per deployment)
   mqreportservice:
     image: parus/service/mqreportservice:latest
+    profiles: ["report", "all"]
     container_name: parus-mqreportservice-${DEPLOYMENT_NAME}
     restart: unless-stopped
     env_file:
       - .env/${DEPLOYMENT_NAME}.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - Connection__Kind=${ParusRpt__Connection__Kind}
+      - Connection__ConnectionString=${ParusRpt__Connection__ConnectionString}
+      - Connection__DbMonitorEnabled=${ParusRpt__Connection__DbMonitorEnabled}
     networks:
       - p8-network
 
