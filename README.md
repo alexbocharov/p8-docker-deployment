@@ -47,13 +47,13 @@ Run this once to bring up the proxy and cache:
 **Unix / Podman:**
 
 ```bash
-sudo podman compose -f docker-compose.shared.yml up -d
+sudo podman compose -p shared -f docker-compose.shared.yml up -d
 ```
 
 **Windows / PowerShell:**
 
 ```pwsh
-docker compose -f docker-compose.shared.yml up -d
+docker compose -p shared -f docker-compose.shared.yml up -d
 ```
 
 ### 2️⃣ Create an Instance Config
@@ -75,14 +75,14 @@ Replace `inst1` with your target name:
 **Unix / Podman:**
 
 ```bash
-sudo DEPLOYMENT_NAME=inst1 podman compose -f docker-compose.instance.yml --env-file .env/inst1.env --profile report up -d
+sudo DEPLOYMENT_NAME=inst1 podman compose -p inst1 -f docker-compose.instance.yml --env-file .env/inst1.env --profile report up -d
 ```
 
 **Windows / PowerShell:**
 
 ```pwsh
 $env:DEPLOYMENT_NAME="inst1"
-docker compose -f docker-compose.instance.yml --env-file .env/inst1.env --profile report up -d
+docker compose -p inst1 -f docker-compose.instance.yml --env-file .env/inst1.env --profile report up -d
 ```
 
 ### 4️⃣ Access the Instance
@@ -117,20 +117,46 @@ location ~ ^/(?<inst>[^/]+)/ {
 
 ## 🛠️ Maintenance
 
-Stop a specific instance (e.g., `inst1`):
+### Stop a shared infrastructure:
+
+**Unix / Podman:**
+
+```bash
+sudo podman compose -p shared -f docker-compose.shared.yml down
+```
+
+**Windows / PowerShell:**
+
+```pwsh
+docker compose -p shared -f docker-compose.shared.yml down
+```
+
+### Stop a specific instance (e.g., `inst1`):
 
 **Unix / Podman:**
 ```bash
-sudo DEPLOYMENT_NAME=inst1 podman compose -f docker-compose.instance.yml --env-file .env/inst1.env down
+sudo DEPLOYMENT_NAME=inst1 podman compose -p inst1 -f docker-compose.instance.yml --env-file .env/inst1.env down
 ```
 
 **Windows / PowerShell:**
 ```pwsh
 $env:DEPLOYMENT_NAME="inst1"
-docker compose -f docker-compose.instance.yml --env-file .env/inst1.env down
+docker compose -p inst1 -f docker-compose.instance.yml --env-file .env/inst1.env down
 ```
 
-View logs for an instance:
+### Stop all instances:
+
+**Unix / Podman:**
+```bash
+sudo podman ps --filter "name=parus-web-" --format "{{.Names}}" | xargs -r -n1 -I{} sudo podman compose -p {} -f docker-compose.instance.yml --env-file .env/{}.env down
+```
+
+**Windows / PowerShell:**
+```pwsh
+docker ps --filter "name=parus-web-" --format "{{.Names}}" | ForEach-Object { docker compose -p $_ -f docker-compose.instance.yml --env-file .env/$_.env down }
+```
+
+### View logs for an instance:
 
 **Unix / Podman:**
 ```bash
@@ -142,7 +168,7 @@ podman logs -f parus-web-inst1
 docker logs -f parus-web-inst1
 ```
 
-Check Health Status:
+### Check Health Status:
 
 **Unix / Podman:**
 ```bash
