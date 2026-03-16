@@ -34,6 +34,11 @@ services:
       "
     networks:
       - p8-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   # Parus 8 Web Client (Unique per deployment)
   web:
@@ -46,13 +51,18 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - Hosing__UseForwardedHeaders=true
+      - Hosting__UseForwardedHeaders=true
       - GlobalSettings__WfRedisConnectionString=redis:6379
       - GlobalSettings__SessionRedisConnectionString=redis:6379
       - Hosting__UsePathBase=true
       - Hosting__PathBase=/${DEPLOYMENT_NAME}
     networks:
       - p8-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
 
   # Parus 8 MqReportService (Unique per deployment)
   mqreportservice:
