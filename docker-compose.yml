@@ -35,10 +35,13 @@ services:
     networks:
       - p8-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
-      interval: 10s
+      # 'angie -t' checks if the process can parse its own config
+      # 'pgrep angie' ensures the process is actually running
+      test: ["CMD-SHELL", "angie -t && pgrep angie"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 10s # Gives the sed command time to finish
 
   # Parus 8 Web Client (Unique per deployment)
   web:
@@ -59,10 +62,13 @@ services:
     networks:
       - p8-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      # This check opens a raw TCP connection to port 8080.
+      # It works in both Docker and Podman without needing curl/wget.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 15s
-      timeout: 10s
+      timeout: 5s
       retries: 5
+      start_period: 30s # Gives Parus 8 time to boot before checking
 
   # Parus 8 MqReportService (Unique per deployment)
   mqreportservice:
