@@ -153,8 +153,8 @@ podman ps  # Status should show (healthy)
 ```pwsh
 docker ps  # Status should show (healthy)
 ```
-
-📫 Note: This is an experimental scenario. Use with caution in production.
+> [!IMPORTANT]  
+> 📫 This is an experimental scenario. Use with caution in production.
 
 ## 🤝 **Community Standards**
 We value respectful and constructive interactions. Please refer to our [Code of Conduct](CODE_OF_CONDUCT.md) for detailed guidelines on community behavior.
