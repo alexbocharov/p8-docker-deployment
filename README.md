@@ -30,7 +30,7 @@ p8-docker-deployment/
 ├── .env/                  # Folder for instance-specific configs
 │   ├── inst1.env          # Config for 'inst1'
 │   └── inst2.env          # Config for 'inst2'
-├── angie.conf             # Dynamic Reverse Proxy configuration
+├── angie.conf.template    # Dynamic Reverse Proxy configuration template
 ├── docker-compose.yml     # Main orchestration file
 └── README.md              # You are here!
 ```
@@ -55,8 +55,17 @@ AuthSettings__Applications__0__name=Administrator
 
 Run the following command, replacing with your desired name:`inst1`
 
+**Unix:**
 ```bash
-DEPLOYMENT_NAME=inst1 docker-compose -p inst1 up -d
+DEPLOYMENT_NAME=inst1 docker-compose --env-file .env/inst1.env --profile report up -d
+```
+
+**Windows:**
+```pwsh
+# Set the deployment name for the container names
+$env:DEPLOYMENT_NAME="inst1"
+# Run with the specific env-file and profiles
+docker-compose --env-file .env/inst1.env --profile report up -d
 ```
 
 ### 3️⃣ Access via Browser
