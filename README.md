@@ -108,8 +108,15 @@ docker logs -f parus-web-inst1
 
 To stop a specific instance:
 
+**Unix:**
 ```bash
-DEPLOYMENT_NAME=inst1 docker-compose -p inst1 down
+DEPLOYMENT_NAME=inst1 docker compose --env-file .env/inst1.env down
+```
+
+**Windows:**
+```pwsh
+$env:DEPLOYMENT_NAME="inst1"
+docker compose --env-file .env/inst1.env down
 ```
 
 📫 This is an experimental scenario. Use with caution in production environments.
