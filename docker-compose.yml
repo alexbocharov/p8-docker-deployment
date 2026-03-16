@@ -43,11 +43,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    # Each instance needs a unique host port if accessed directly, but ideally should be accessed through Angine
-    ports:
-      - "${WEB_PORT}:8080"
-    env_file:
-      - .env/${DEPLOYMENT_NAME}.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
@@ -65,13 +60,11 @@ services:
     profiles: ["report", "all"]
     container_name: parus-mqreportservice-${DEPLOYMENT_NAME}
     restart: unless-stopped
-    env_file:
-      - .env/${DEPLOYMENT_NAME}.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - Connection__Kind=${ParusRpt__Connection__Kind}
-      - Connection__ConnectionString=${ParusRpt__Connection__ConnectionString}
-      - Connection__DbMonitorEnabled=${ParusRpt__Connection__DbMonitorEnabled}
+      - Connection__Kind=${PARUS_RPT_CONNECTION_KIND}
+      - Connection__ConnectionString=${PARUS_RPT_CONNECTION_STRING}
+      - Connection__DbMonitorEnabled=${PARUS_RPT_CONNECTION_DBMONITORENABLED}
     networks:
       - p8-network
 
