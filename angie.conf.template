@@ -17,8 +17,8 @@ http {
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml;
 
-    # Use a simple placeholder like __NS_IP__
-    resolver __NS_IP__ valid=10s;
+    # Make sure __NS_IP__ is replaced with a real DNS IP (e.g., 127.0.0.11 for Docker)
+    resolver 127.0.0.11 valid=10s;
 
     server {
         listen 80;
@@ -37,21 +37,21 @@ http {
         proxy_buffers 16 16k;
         proxy_buffer_size 32k;
 
-        # DYNAMIC ROUTING
-        # Matches /webcore/..., /demo/..., etc.
-        location ~ ^/(?<inst>[^/]+) {  # Removed the mandatory trailing slash from regex
-            set $target parus-web-$inst;
-            
-            # If the URL doesn't end in a slash, redirect to the slashed version
-            # This prevents the "No such file or directory" error
-            rewrite ^/([^/]+)$ /$1/ permanent;
-
-            proxy_pass http://$target:8080;
+        # ROOT REDIRECT (Must be placed BEFORE regex locations)
+        location = / {
+            return 301 /inst1/; # Change 'inst1' to your default instance name
         }
 
-        # Optional: Redirect root to a default environment
-        location = / {
-            return 301 /inst1/;
+        # DYNAMIC ROUTING
+        location ~ ^/(?<inst>[^/]+) {
+            # Add trailing slash if missing (e.g., /demo -> /demo/)
+            # This must happen BEFORE proxy_pass
+            rewrite ^/([^/]+)$ /$1/ permanent;
+
+            set $target "parus-web-$inst";
+            
+            # Using a variable in proxy_pass requires a resolver (127.0.0.11 for Docker)
+            proxy_pass http://$target:8080;
         }
     }
 }
