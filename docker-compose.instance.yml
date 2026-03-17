@@ -19,7 +19,7 @@ services:
     healthcheck:
       # This check opens a raw TCP connection to port 8080.
       # It works in both Docker and Podman without needing curl/wget.
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      test: ["CMD-SHELL", "kill -0 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -40,6 +40,12 @@ services:
       - .env/${DEPLOYMENT_NAME}.env
     networks:
       - p8-network
+    healthcheck:
+      test: ["CMD-SHELL", "pidof dotnet || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s # Gives Parus 8 time to boot before checking
 
 networks:
   p8-network:
