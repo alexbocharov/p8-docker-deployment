@@ -4,7 +4,7 @@ This repository contains an experimental, highly scalable Docker Compose configu
 
 ## 🌟 Key Features
 
-*   **Dynamic Routing:** Access multiple instances via URL paths (e.g., `/p8dev`, `/prsnk`) on a single port (80).
+*   **Dynamic Routing:** Access multiple instances via URL paths (e.g., `/inst1`, `/inst2`) on a single port (80).
 *   **Shared Resources:** Single **Redis** and **Angie** (Nginx-compatible) instance for all environments to minimize RAM usage.
 *   **Universal DNS Detection:** Automatically detects nameservers for both Docker (`127.0.0.11`) and Podman (`10.88.0.1`).
 *   **Instance Isolation:** Start, stop, or update specific deployments without affecting others.
@@ -104,8 +104,15 @@ To support subfolder routing, the following variables are automatically injected
 The proxy uses a regex-based block to resolve container names dynamically:`location`
 
 ```nginx
-location ~ ^/(?<inst>[^/]+)/ {
-    proxy_pass http://parus-web-$inst:8080;
+location ~ ^/(?<inst>[^/]+) {
+    # Add trailing slash if missing (e.g., /demo -> /demo/)
+    # This must happen BEFORE proxy_pass
+    rewrite ^/([^/]+)$ /$1/ permanent;
+
+    set $target "parus-web-$inst";
+    
+    # Using a variable in proxy_pass requires a resolver (127.0.0.11 for Docker)
+    proxy_pass http://$target:8080;
 }
 ```
 

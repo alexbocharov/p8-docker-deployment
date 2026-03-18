@@ -17,8 +17,8 @@ http {
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml;
 
-    # Make sure __NS_IP__ is replaced with a real DNS IP (e.g., 127.0.0.11 for Docker)
-    resolver 127.0.0.11 valid=10s;
+    # Use a simple placeholder like __NS_IP__
+    resolver __NS_IP__ valid=10s;
 
     server {
         listen 80;
