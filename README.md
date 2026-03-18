@@ -136,7 +136,7 @@ location ~ ^/(?<inst>[^/]+) {
     # This must happen BEFORE proxy_pass
     rewrite ^/([^/]+)$ /$1/ permanent;
 
-    set $target "parus-web-$inst";
+    set $target "${inst}_web_1";
     
     # Using a variable in proxy_pass requires a resolver (127.0.0.11 for Docker)
     proxy_pass http://$target:8080;
