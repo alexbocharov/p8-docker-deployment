@@ -2,7 +2,6 @@ services:
   # Parus 8 Web Client (Unique per deployment)
   web:
     image: parus/web:latest
-    container_name: parus-web-${DEPLOYMENT_NAME}
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
@@ -29,7 +28,6 @@ services:
   mqreportservice:
     image: parus/service/mqreportservice:latest
     profiles: ["report", "all"]
-    container_name: parus-mqreportservice-${DEPLOYMENT_NAME}
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
