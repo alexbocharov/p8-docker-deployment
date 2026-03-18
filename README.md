@@ -90,6 +90,33 @@ docker compose -p inst1 -f docker-compose.instance.yml --env-file .env/inst1.env
 Wait for the containers to start and visit:
 `http://your-server-ip/inst1`
 
+## 📈 Scaling Services
+
+If you need to handle more reporting load or background tasks, you can scale specific services (e.g., `mqreportservice`) within an instance.
+
+**Scale to 3 instances (Unix / Podman):**
+
+```bash
+sudo DEPLOYMENT_NAME=inst1 podman compose \
+  -p inst1 \
+  -f docker-compose.instance.yml \
+  --env-file .env/inst1.env \
+  --profile report \
+  up -d --scale mqreportservice=3
+```
+
+**Scale to 3 instances (Windows / PowerShell):**
+
+```pwsh
+$env:DEPLOYMENT_NAME="inst1"
+docker compose \
+  -p inst1 \
+  -f docker-compose.instance.yml \
+  --env-file .env/inst1.env \
+  --profile report \
+  up -d --scale mqreportservice=3
+```
+
 ## ⚙️ Configuration Details
 
 ### Parus 8 Web Settings
